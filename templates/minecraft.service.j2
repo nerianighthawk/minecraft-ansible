@@ -1,0 +1,12 @@
+[Unit]
+Description=Minecraft Forge Server
+After=network.target
+
+[Service]
+User={{ minecraft_user }}
+WorkingDirectory={{ minecraft_server_directory }}
+ExecStart=/usr/bin/java -jar {{ minecraft_server_directory }}/forge-{{ forge_version }}-universal.jar nogui
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

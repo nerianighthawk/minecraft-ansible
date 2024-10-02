@@ -1,0 +1,8 @@
+# Minecraft Forgeのバージョン
+forge_version: "1.16.5-36.2.20"
+minecraft_server_directory: "/opt/minecraft"
+mod_list:
+  - "https://example.com/path/to/mod1.jar"
+  - "https://example.com/path/to/mod2.jar"
+forge_installer_url: "https://maven.minecraftforge.net/net/minecraftforge/forge/{{ forge_version }}/forge-{{ forge_version }}-installer.jar"
+minecraft_user: minecraft

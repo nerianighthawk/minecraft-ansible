@@ -1,0 +1,88 @@
+---
+- hosts: all
+  become: yes  # 管理者権限で実行
+  tasks:
+    - name: 必要なパッケージのインストール
+      apt:
+        name: 
+          - default-jre   # Java Runtime Environment
+          - wget          # ファイルのダウンロード
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Minecraftサーバーユーザーの作成
+      user:
+        name: "{{ minecraft_user }}"
+        home: "{{ minecraft_server_directory }}"
+        shell: /bin/bash
+        state: present
+
+    - name: Minecraftサーバーディレクトリの作成
+      file:
+        path: "{{ minecraft_server_directory }}"
+        state: directory
+        owner: "{{ minecraft_user }}"
+        group: "{{ minecraft_user }}"
+        mode: '0755'
+
+    - name: Forgeサーバーのダウンロード
+      get_url:
+        url: "{{ forge_installer_url }}"
+        dest: "{{ minecraft_server_directory }}/forge-installer.jar"
+        mode: '0755'
+
+    - name: Forgeサーバーのインストール
+      command: >
+        java -jar forge-installer.jar --installServer
+      args:
+        chdir: "{{ minecraft_server_directory }}"
+      creates: "{{ minecraft_server_directory }}/run.sh"
+      become_user: "{{ minecraft_user }}"
+
+    - name: MODディレクトリの作成
+      file:
+        path: "{{ minecraft_server_directory }}/mods"
+        state: directory
+        owner: "{{ minecraft_user }}"
+        group: "{{ minecraft_user }}"
+        mode: '0755'
+
+    - name: 指定されたMODをダウンロード
+      get_url:
+        url: "{{ item }}"
+        dest: "{{ minecraft_server_directory }}/mods/"
+        mode: '0644'
+      loop: "{{ mod_list }}"
+      become_user: "{{ minecraft_user }}"
+
+    - name: EULAファイルのアップロード
+      copy:
+        src: "files/eula.txt"
+        dest: "{{ minecraft_server_directory }}/eula.txt"
+        mode: '0644'
+        owner: "{{ minecraft_user }}"
+        group: "{{ minecraft_user }}"
+
+    - name: サーバー設定ファイルのアップロード
+      copy:
+        src: "files/server.properties"
+        dest: "{{ minecraft_server_directory }}/server.properties"
+        mode: '0644'
+        owner: "{{ minecraft_user }}"
+        group: "{{ minecraft_user }}"
+
+    - name: systemd用サービスファイルを作成
+      template:
+        src: "templates/minecraft.service.j2"
+        dest: "/etc/systemd/system/minecraft.service"
+        mode: '0644'
+
+    - name: systemdデーモンをリロード
+      systemd:
+        daemon_reload: yes
+
+    - name: Minecraftサーバーサービスを有効化
+      systemd:
+        name: minecraft
+        enabled: yes
+        state: started
