@@ -6,3 +6,7 @@ mod_list:
   - "https://example.com/path/to/mod2.jar"
 forge_installer_url: "https://maven.minecraftforge.net/net/minecraftforge/forge/{{ forge_version }}/forge-{{ forge_version }}-installer.jar"
 minecraft_user: minecraft
+backup_dir: "/opt/minecraft/backup"
+backup_filename: "minecraft_backup_{{ ansible_date_time.iso8601 }}.tar.gz"
+local_backup_dir: "./backups"
+local_backup_filename: "minecraft_backup_latest.tar.gz"

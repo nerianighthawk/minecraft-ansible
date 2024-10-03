@@ -1,0 +1,25 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+    - name: Minecraftサーバーのデータを圧縮してバックアップ
+      command: >
+        tar czf /tmp/{{ backup_filename }} -C {{ minecraft_server_directory }} .
+
+    - name: ローカルマシンにバックアップをダウンロード
+      fetch:
+        src: "/tmp/{{ backup_filename }}"
+        dest: "{{ local_backup_dir }}/"
+        flat: yes
+    
+    - name: latest ファイルの作成
+      copy:
+        src: "{{ local_backup_dir }}/{{ backup_filename }}"
+        dest: "{{ local_backup_dir }}/minecraft_backup_latest.tar.gz"
+      become: false
+      delegate_to: localhost
+
+    - name: 一時ファイルを削除
+      file:
+        path: "/tmp/{{ backup_filename }}"
+        state: absent

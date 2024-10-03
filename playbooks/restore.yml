@@ -1,0 +1,50 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+    - name: バックアップをサーバーにアップロード
+      copy:
+        src: "{{ local_backup_dir }}/{{ local_backup_filename }}"
+        dest: "/tmp/minecraft_backup_restore.tar.gz"
+
+    - name: Minecraftサーバーサービスを停止
+      systemd:
+        name: minecraft
+        enabled: no
+        state: stopped
+    
+    - name: データディレクトリをクリア
+      file:
+        path: "{{ minecraft_server_directory }}"
+        state: absent
+
+    - name: Minecraftサーバーディレクトリの作成
+      file:
+        path: "{{ minecraft_server_directory }}"
+        state: directory
+        owner: "{{ minecraft_user }}"
+        group: "{{ minecraft_user }}"
+        mode: '0755'
+
+    - name: Minecraftサーバーデータを復元
+      command: >
+        tar xzf /tmp/minecraft_backup_restore.tar.gz -C {{ minecraft_server_directory }}
+
+    - name: 指定ディレクトリ以下のファイルとディレクトリの権限を再帰的に変更
+      file:
+        path: "{{ minecraft_server_directory }}"
+        mode: '0755'  # ディレクトリとファイルの権限
+        owner: minecraft
+        group: minecraft
+        recurse: yes
+
+    - name: Minecraftサーバーサービスを有効化
+      systemd:
+        name: minecraft
+        enabled: yes
+        state: started
+
+    - name: 復元完了後にバックアップファイルを削除
+      file:
+        path: "/tmp/minecraft_backup_restore.tar.gz"
+        state: absent
