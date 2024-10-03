@@ -31,13 +31,16 @@
         dest: "{{ minecraft_server_directory }}/forge-installer.jar"
         mode: '0755'
 
+    - name: Forgeサーバーのインストール用スクリプトが存在するか確認
+      stat:
+        path: "{{ minecraft_server_directory }}/run.sh"
+      register: forge_installed
+
     - name: Forgeサーバーのインストール
-      command: >
-        java -jar forge-installer.jar --installServer
+      command: java -jar forge-installer.jar --installServer
       args:
         chdir: "{{ minecraft_server_directory }}"
-      creates: "{{ minecraft_server_directory }}/run.sh"
-      become_user: "{{ minecraft_user }}"
+      when: forge_installed.stat.exists == False
 
     - name: MODディレクトリの作成
       file:
@@ -53,7 +56,14 @@
         dest: "{{ minecraft_server_directory }}/mods/"
         mode: '0644'
       loop: "{{ mod_list }}"
-      become_user: "{{ minecraft_user }}"
+
+    - name: 指定ディレクトリ以下のファイルとディレクトリの権限を再帰的に変更
+      file:
+        path: "{{ minecraft_server_directory }}"
+        mode: '0755'  # ディレクトリとファイルの権限
+        owner: minecraft
+        group: minecraft
+        recurse: yes
 
     - name: EULAファイルのアップロード
       copy:
