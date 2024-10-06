@@ -1,0 +1,83 @@
+---
+- hosts: all
+  become: yes
+  vars:
+    virtualenv_path: "/opt/discord_bot_env"     # 仮想環境のパス
+    app_directory: "/opt/discord_bot"       # アプリケーションのディレクトリ
+    discord_bot:
+      - discord_log
+      - discord_command
+  tasks:
+
+    # 1. Pythonをインストール
+    - name: Install Python and necessary packages
+      apt:
+        name: 
+          - python3
+          - python3-venv
+        state: present
+        update_cache: yes
+
+    # 2. Python仮想環境の作成
+    - name: Create a Python virtual environment
+      command: python3 -m venv {{ virtualenv_path }}
+      args:
+        creates: "{{ virtualenv_path }}/bin/activate"  # idempotent (既に仮想環境が存在する場合は実行しない)
+
+    - name: Install Python dependencies in the virtual environment
+      pip:
+        name:
+          - discord.py
+          - mcrcon
+        virtualenv: "{{ virtualenv_path }}"
+        virtualenv_command: "python3 -m venv"
+        state: present
+
+    # 3. アプリケーションディレクトリの作成
+    - name: Create application directory
+      file:
+        path: "{{ app_directory }}"
+        state: directory
+        mode: '0755'
+
+    # 4. テンプレートからPythonプログラムをコピー
+    - name: Deploy Python program from Jinja2 template
+      template:
+        src: templates/{{ item }}.py.j2  # Jinja2テンプレートファイル
+        dest: "{{ app_directory }}/{{ item }}.py"
+        mode: '0755'
+      loop: "{{ discord_bot }}"
+
+    # 6. systemdサービスファイルの作成
+    - name: Create systemd service file
+      copy:
+        dest: /etc/systemd/system/{{ item }}.service
+        content: |
+          [Unit]
+          Description=Run Python program in virtualenv
+          After=network.target
+
+          [Service]
+          WorkingDirectory={{ app_directory }}
+          ExecStart={{ virtualenv_path }}/bin/python {{ app_directory }}/{{ item }}.py
+          Restart=always
+          User=root
+
+          [Install]
+          WantedBy=multi-user.target
+      notify: 
+        - Reload systemd
+      loop: "{{ discord_bot }}"
+
+    # 7. サービスを有効化・開始
+    - name: Enable and start the Python service
+      systemd:
+        name: "{{ item }}"
+        enabled: yes
+        state: started
+      loop: "{{ discord_bot }}"
+
+  handlers:
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes

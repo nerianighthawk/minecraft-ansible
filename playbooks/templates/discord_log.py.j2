@@ -1,0 +1,46 @@
+import discord
+import asyncio
+import subprocess
+
+TOKEN = '{{ discord_bot_token }}'  # Discord Bot Token
+LOG_CHANNEL_ID = {{ log_channel_id }} # Discord チャンネルID
+SERVICE_NAME = 'minecraft.service'  # Minecraft サーバーの systemd サービス名
+
+intents = discord.Intents.default()
+intents.messages = True  # メッセージのインテントを有効化
+client = discord.Client(intents=intents)
+
+# journalctlを使ってMinecraftサーバーのログをリアルタイムで取得
+async def tail_journal():
+    await client.wait_until_ready()
+    channel = client.get_channel(LOG_CHANNEL_ID)
+
+    # journalctlのプロセスを非同期で実行
+    process = subprocess.Popen(
+        ['journalctl', '-u', SERVICE_NAME, '-f', '-n', '0'],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+    )
+
+    while not client.is_closed():
+        # 新しいログ行を読み取る
+        line = process.stdout.readline()
+        if line:
+            await channel.send(line.strip())  # Discordに送信
+        await asyncio.sleep(1)  # 1秒待機
+
+@client.event
+async def on_ready():
+    print(f'Logged in as {client.user}')
+    # 非同期タスクとして tail_journal を起動
+    asyncio.create_task(tail_journal())
+
+# メインの非同期関数
+async def main():
+    # ボットを起動し、ログ監視を開始
+    await client.start(TOKEN)
+
+# 非同期処理の実行
+if __name__ == "__main__":
+    asyncio.run(main())
