@@ -10,3 +10,8 @@ backup_dir: "/opt/minecraft/backup"
 backup_filename: "minecraft_backup_{{ ansible_date_time.iso8601 }}.tar.gz"
 local_backup_dir: "./backups"
 local_backup_filename: "minecraft_backup_latest.tar.gz"
+discord_bot_token: XXXXXXXXXXXXXXX
+log_channel_id: xxxyyyzzz
+whitelist_channel_id: aaabbbccc
+command_channel_id: dddeeefff
+rcon_password: password
