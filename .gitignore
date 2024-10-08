@@ -3,3 +3,4 @@ group_vars/
 backups/
 id_rsa
 server.properties
+.DS_Store

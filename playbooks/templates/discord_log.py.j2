@@ -33,6 +33,7 @@ async def tail_journal():
 @client.event
 async def on_ready():
     print(f'Logged in as {client.user}')
+    await asyncio.sleep(30)  # 1秒待機
     # 非同期タスクとして tail_journal を起動
     asyncio.create_task(tail_journal())
 
