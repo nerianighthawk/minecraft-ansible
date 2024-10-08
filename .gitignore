@@ -4,3 +4,5 @@ backups/
 id_rsa
 server.properties
 .DS_Store
+gcp-credentials.json
+.vscode

@@ -1,0 +1,31 @@
+---
+- hosts: localhost
+  tasks:
+    - name: Install google-cloud-storage Python package
+      pip:
+        name: google-cloud-storage
+        state: present
+
+    - name: Create a directory to store downloaded files
+      file:
+        path: /tmp/minecraft-mods
+        state: directory
+
+    - name: Download files
+      get_url:
+        url: "{{ item }}"
+        dest: "/tmp/minecraft-mods/{{ item | basename }}"
+      loop: "{{ mod_list }}"
+
+    - name: Zip the files into a single archive
+      archive:
+        path: /tmp/minecraft-mods
+        dest: /tmp/minecraft-mods.zip
+        format: zip
+
+    - name: Upload zip file to GCS using Python script
+      gcs_upload:
+        bucket_name: "neria-minecraft"
+        source_file_name: "/tmp/minecraft-mods.zip"
+        destination_blob_name: "minecraft-mods.zip"
+        credentials_path: "../gcp-credentials.json"
